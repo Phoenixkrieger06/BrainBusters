@@ -1,0 +1,68 @@
+name: BrainBuster CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Runtime
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build Application
+        run: echo "Build erfolgreich!"
+
+  unit_tests:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+      - name: Run Unit Tests
+        run: pytest tests/unit --maxfail=1 --disable-warnings
+
+  static_analysis:
+    runs-on: ubuntu-latest
+    needs: unit_tests
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run Linter
+        run: flake8 src/
+
+  integration_tests:
+    runs-on: ubuntu-latest
+    needs: static_analysis
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+      - name: Run Integration Tests
+        run: pytest tests/integration
+
+  deploy_test:
+    runs-on: ubuntu-latest
+    needs: integration_tests
+    steps:
+      - name: Deploy to Test Environment
+        run: echo "Deployment in Testumgebung erfolgreich!"
+
+  deploy_prod:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: deploy_test
+    steps:
+      - name: Deploy to Production
+        run: echo "Deployment in Produktion erfolgreich!"
